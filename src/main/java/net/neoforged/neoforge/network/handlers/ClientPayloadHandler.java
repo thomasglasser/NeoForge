@@ -15,6 +15,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -32,6 +33,7 @@ import net.neoforged.neoforge.network.payload.AdvancedAddEntityPayload;
 import net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload;
 import net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload;
 import net.neoforged.neoforge.network.payload.AuxiliaryLightDataPayload;
+import net.neoforged.neoforge.network.payload.ClientboundCustomSetTimePayload;
 import net.neoforged.neoforge.network.payload.ConfigFilePayload;
 import net.neoforged.neoforge.network.payload.FrozenRegistryPayload;
 import net.neoforged.neoforge.network.payload.FrozenRegistrySyncCompletedPayload;
@@ -144,5 +146,13 @@ public final class ClientPayloadHandler {
 
     public static void handle(AdvancedContainerSetDataPayload msg, IPayloadContext context) {
         context.handle(msg.toVanillaPacket());
+    }
+
+    public static void handle(final ClientboundCustomSetTimePayload payload, final IPayloadContext context) {
+        @SuppressWarnings("resource")
+        final ClientLevel level = Minecraft.getInstance().level;
+        level.setTimeFromServer(payload.gameTime(), payload.dayTime(), payload.gameRule());
+        level.setDayTimeFraction(payload.dayTimeFraction());
+        level.setDayTimePerTick(payload.dayTimePerTick());
     }
 }

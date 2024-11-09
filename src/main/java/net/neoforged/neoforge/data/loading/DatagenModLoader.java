@@ -16,11 +16,14 @@ import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.server.Bootstrap;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.client.entity.animation.json.AnimationTypeManager;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.internal.CommonModLoader;
+import net.neoforged.neoforge.internal.RegistrationEvents;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.ApiStatus;
 
 public class DatagenModLoader extends CommonModLoader {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -32,6 +35,7 @@ public class DatagenModLoader extends CommonModLoader {
         return runningDataGen;
     }
 
+    @ApiStatus.Internal
     public static void begin(final Set<String> mods, final Path path, final Collection<Path> inputs, Collection<Path> existingPacks,
             Set<String> existingMods, final boolean serverGenerators, final boolean clientGenerators, final boolean devToolGenerators, final boolean reportsGenerator,
             final boolean structureValidator, final boolean flat, final String assetIndex, final File assetsDir) {
@@ -40,7 +44,9 @@ public class DatagenModLoader extends CommonModLoader {
         LOGGER.info("Initializing Data Gatherer for mods {}", mods);
         runningDataGen = true;
         Bootstrap.bootStrap();
-        begin(() -> {});
+        begin(() -> {}, true);
+        // Modify components as the (modified) defaults may be required in datagen, i.e. stack size
+        RegistrationEvents.modifyComponents();
         CompletableFuture<HolderLookup.Provider> lookupProvider = CompletableFuture.supplyAsync(VanillaRegistries::createLookup, Util.backgroundExecutor());
         dataGeneratorConfig = new GatherDataEvent.DataGeneratorConfig(mods, path, inputs, lookupProvider, serverGenerators,
                 clientGenerators, devToolGenerators, reportsGenerator, structureValidator, flat);
@@ -50,6 +56,7 @@ public class DatagenModLoader extends CommonModLoader {
         }
         if (clientGenerators) {
             ClientHooks.registerSpriteSourceTypes();
+            AnimationTypeManager.init();
         }
         existingFileHelper = new ExistingFileHelper(existingPacks, existingMods, structureValidator, assetIndex, assetsDir);
         ModLoader.runEventGenerator(mc -> new GatherDataEvent(mc, dataGeneratorConfig.makeGenerator(p -> dataGeneratorConfig.isFlat() ? p : p.resolve(mc.getModId()),
